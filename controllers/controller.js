@@ -1,5 +1,5 @@
 const User = require('../database/databaseSchema');
-
+const qs = require('qs');
 
 const postUsers = async(req, res) => {
   try{
@@ -91,5 +91,54 @@ const allUsers = async(req, res) => {
   }
 }
 
+const fieldUsers = async(req, res) => {
+  try{
+    // The Filter and use the query paser, so that the [gte] and others can be understandable by express
+    const parsed = qs.parse(req.query);
+  
+    let queryObj = {...parsed};
+    
+    const exclude = ["fields", "sort", "page", "limit"];
 
-module.exports = { postUsers, viewAll, allUsers }
+    exclude.forEach(el => delete queryObj[el]);
+
+    //Make it a string
+    let queryStr = JSON.stringify(queryObj);
+
+    //Make it look like the filter in mongoose
+    queryStr = queryStr.replace(/\b(gte|gt|lte|lt)\b/g, match => `$${match}`);
+    let queryObject = JSON.parse(queryStr);
+    
+    //filter Query
+    let query = User.find(queryObject);
+
+    //Fields Limits
+    if(req.query.fields) {
+      const fields = req.query.fields?.split(",").join(" ");
+      query = query.select(fields);
+    } else {
+      query = query.select("-__v");
+    }
+
+    // Query
+    const users = await query;
+
+    if(!users) {
+      return res.status(404).json({
+        message: "User not found"
+      });
+    }
+
+    res.status(200).json(users);
+  
+  } catch(error) {
+    console.log(error);
+
+    res.status(500).json({
+      message: "Something went wrong please try again later"
+    });
+  }
+}
+
+
+module.exports = { postUsers, viewAll, allUsers, fieldUsers }
