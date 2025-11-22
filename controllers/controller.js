@@ -120,6 +120,22 @@ const fieldUsers = async(req, res) => {
       query = query.select("-__v");
     }
 
+    //Sortings
+    if(req.query.sort) {
+      const sortBy = req.query.sort.split(",").join(" ");
+      query = query.sort(sortBy)
+    } else {
+      query = query.sort("-createdAt");
+    }
+
+    //Pagination, skip, and limits
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 2;
+    const skip = (page - 1) * limit;
+
+    query = query.skip(skip).limit(limit);
+    
+
     // Query
     const users = await query;
 
